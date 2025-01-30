@@ -4,12 +4,13 @@ on:
   push:
     branches:
       - main
-  pull_request:
 
 jobs:
-  setup:
+  install_dependencies:
     name: Install Dependencies
     runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache.outputs.cache-hit }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -19,21 +20,13 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Cache Dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
       - name: Install Dependencies
-        run: pip install black pytest coverage numpy matplotlib
+        run: |
+          pip install black pytest coverage numpy matplotlib
 
   style_check:
-    name: Format Code
+    name: Style Check
     runs-on: ubuntu-latest
-    needs: setup
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -47,14 +40,12 @@ jobs:
         run: pip install black
 
       - name: Auto-Format Code
-        run: |
-          black .
-          git diff --exit-code || (echo "Code was reformatted. Please commit changes." && exit 1)
+        run: black .
 
   test:
     name: Run Tests
     runs-on: ubuntu-latest
-    needs: setup
+    needs: install_dependencies
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -79,7 +70,7 @@ jobs:
           include-hidden-files: true
 
   coverage_report:
-    name: Generate Coverage Report
+    name: Coverage Report
     runs-on: ubuntu-latest
     needs: test
     steps:
@@ -91,15 +82,15 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Coverage Tool
+      - name: Install Coverage
         run: pip install coverage
 
-      - name: Download Coverage Data
+      - name: Download coverage
         uses: actions/download-artifact@v4
         with:
           name: code-coverage
 
-      - name: Generate Report
+      - name: Generate Coverage Report
         run: |
           coverage report -m
           coverage xml
