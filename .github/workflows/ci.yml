@@ -24,6 +24,9 @@
 
         - name: Run Black
           run: black --check .
+        
+        - name: Auto-format with Black
+          run: black .
 
     test:
       name: Run Tests
